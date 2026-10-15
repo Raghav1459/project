@@ -129,7 +129,9 @@
       redirectTo: `${window.location.origin}${window.location.pathname}`
     });
     loginMessage.textContent = error
-      ? 'Could not send a reset link. Check the email address and try again.'
+      ? error.status === 429
+        ? 'Supabase’s built-in email service allows 2 authentication emails per hour. Wait about an hour after the last invite or sign-in email, then try again.'
+        : 'Could not send a reset link. Check the email address and try again.'
       : 'If this email belongs to an account, a password reset link will arrive shortly.';
     loginMessage.classList.add('show');
     button.disabled = false;
