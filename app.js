@@ -4,6 +4,10 @@
   const key = window.PARKSIDE_SUPABASE_ANON_KEY;
   const notice = document.querySelector('.login-notice');
   const loginMessage = document.querySelector('#login-message');
+  const passwordResetMessage = document.querySelector('#password-reset-message');
+  const adminDialog = document.querySelector('#admin-dialog');
+  const adminForm = document.querySelector('#admin-form');
+  const passwordResetForm = document.querySelector('#set-new-password-form');
   const panel = document.querySelector('#admin-panel');
   const photoInput = document.querySelector('#photo');
   const photoPreview = document.querySelector('#photo-preview');
@@ -46,6 +50,7 @@
     notice.textContent = 'The shared complaint service could not load. Check the internet connection and Supabase settings.';
     return;
   }
+  notice.textContent = 'Sign in with the administrator account assigned to this site. Use the password reset link if you need to choose a password.';
 
   let adminSession = null;
   reports = [];
@@ -108,7 +113,75 @@
     return !error && data === true;
   }
 
-  document.querySelector('#admin-form').addEventListener('submit', async event => {
+  document.querySelector('#request-password-reset').addEventListener('click', async event => {
+    const email = document.querySelector('#admin-email').value.trim();
+    loginMessage.classList.remove('show');
+    if (!email) {
+      loginMessage.textContent = 'Enter your email address first, then request a reset link.';
+      loginMessage.classList.add('show');
+      document.querySelector('#admin-email').focus();
+      return;
+    }
+    const button = event.currentTarget;
+    button.disabled = true;
+    button.textContent = 'Sending…';
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${window.location.pathname}`
+    });
+    loginMessage.textContent = error
+      ? 'Could not send a reset link. Check the email address and try again.'
+      : 'If this email belongs to an account, a password reset link will arrive shortly.';
+    loginMessage.classList.add('show');
+    button.disabled = false;
+    button.textContent = 'Forgot password? Send a reset link';
+  });
+
+  client.auth.onAuthStateChange(event => {
+    if (event !== 'PASSWORD_RECOVERY') return;
+    loginMessage.classList.remove('show');
+    adminForm.hidden = true;
+    passwordResetForm.hidden = false;
+    if (!adminDialog.open) adminDialog.showModal();
+    document.querySelector('#new-admin-password').focus();
+  });
+
+  passwordResetForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    passwordResetMessage.classList.remove('show');
+    const password = document.querySelector('#new-admin-password').value;
+    const confirmation = document.querySelector('#confirm-admin-password').value;
+    if (password !== confirmation) {
+      passwordResetMessage.textContent = 'Those passwords do not match.';
+      passwordResetMessage.classList.add('show');
+      return;
+    }
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const { error } = await client.auth.updateUser({ password });
+    if (error) {
+      passwordResetMessage.textContent = 'Could not update the password. The reset link may have expired; request another one.';
+      passwordResetMessage.classList.add('show');
+    } else {
+      const { data } = await client.auth.getSession();
+      if (await verifyAdmin(data.session)) {
+        adminSession = data.session;
+        passwordResetForm.reset();
+        passwordResetForm.hidden = true;
+        adminForm.hidden = false;
+        adminDialog.close();
+        await loadReports();
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        passwordResetMessage.textContent = 'Password updated, but this account is not on the administrator list.';
+        passwordResetMessage.classList.add('show');
+      }
+    }
+    button.disabled = false;
+    button.textContent = 'Save new password';
+  });
+
+  adminForm.addEventListener('submit', async event => {
     event.preventDefault();
     event.stopImmediatePropagation();
     loginMessage.classList.remove('show');
