@@ -16,6 +16,6 @@ The website is static, so it needs a hosted database and authentication service 
    The query must insert one row. If it inserts none, invite and verify the address first.
 5. Publish the updated site. Open **Admin login**, then sign in with the invited account’s email and password.
 
-Public complaint details are visible in the community list. Reporter email addresses are stored in a separate table and can only be read by an administrator. Only an administrator can change complaint status. Existing demo entries and browser-local submissions are not transferred to the shared database.
+Public complaint details are visible in the community list. Reporter email addresses are stored in a separate table and can only be read by an administrator. Uploaded photos are kept in a private storage bucket; only an administrator can open them. Photos must be JPG, PNG, or WebP and are limited to 5 MB. Only an administrator can change complaint status. Existing demo entries and browser-local submissions are not transferred to the shared database.
 
 Until the project URL and key are configured, the site stays in local demo mode and the admin login remains unavailable.
